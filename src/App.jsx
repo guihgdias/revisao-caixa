@@ -2,12 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 
 const reviewFields = [
-  { key: 'loyalty', id: 'review-loyalty', name: 'reviewLoyalty', label: 'Fidelidade (R$)' },
-  { key: 'cardPix', id: 'review-card-pix', name: 'reviewCardPix', label: 'Cartão/Pix (R$)' },
-  { key: 'cash', id: 'review-cash', name: 'reviewCash', label: 'Dinheiro (R$)' },
-  { key: 'withdrawal', id: 'review-withdrawal', name: 'reviewWithdrawal', label: 'Saque (R$)' },
-  { key: 'dailies', id: 'review-dailies', name: 'reviewDailies', label: 'Diárias (R$)' },
-  { key: 'replenish', id: 'review-replenish', name: 'reviewReplenish', label: 'Repor fundo de caixa (R$)' },
+  { key: 'loyalty', id: 'review-loyalty', name: 'reviewLoyalty', label: 'Fidelidade' },
+  { key: 'cardPix', id: 'review-card-pix', name: 'reviewCardPix', label: 'Cartão/Pix' },
+  { key: 'cash', id: 'review-cash', name: 'reviewCash', label: 'Dinheiro' },
+  { key: 'withdrawal', id: 'review-withdrawal', name: 'reviewWithdrawal', label: 'Saque' },
+  { key: 'dailies', id: 'review-dailies', name: 'reviewDailies', label: 'Diárias' },
+  { key: 'replenish', id: 'review-replenish', name: 'reviewReplenish', label: 'Repor fundo de caixa', subtracts: true },
 ]
 
 const roles = [
@@ -16,6 +16,12 @@ const roles = [
   { value: 'Lavanderia', daily: '170' },
   { value: 'Gerência' },
   { value: 'Outro' },
+]
+
+const themes = [
+  { id: 'default', label: 'Azul' },
+  { id: 'orange', label: 'Laranja' },
+  { id: 'red', label: 'Vermelho' },
 ]
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', {
@@ -63,13 +69,15 @@ function parseDate(dateValue) {
   return date
 }
 
+function getWeekday(date) {
+  const weekday = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' }).format(date)
+  return `${weekday[0].toLocaleUpperCase('pt-BR')}${weekday.slice(1)}`
+}
+
 function formatDate(dateValue) {
   const date = parseDate(dateValue)
   if (!date) return dateValue
-
-  const weekday = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' }).format(date)
-  const capitalizedWeekday = `${weekday[0].toLocaleUpperCase('pt-BR')}${weekday.slice(1)}`
-  return `${dateValue} - ${capitalizedWeekday}`
+  return `${dateValue} - ${getWeekday(date)}`
 }
 
 function calculateReviewTotal(review) {
@@ -128,66 +136,68 @@ function buildReport({ date, shift, employees, carExits, revenue, review }) {
   ].join('\n')
 }
 
-function SectionHeading({ number, title, description, id }) {
+function SunIcon({ className = 'shift-icon' }) {
   return (
-    <div className="section-heading">
-      <span className="section-number" aria-hidden="true">{number}</span>
-      <div>
-        <h2 id={id}>{title}</h2>
-        <p className="section-description">{description}</p>
-      </div>
-    </div>
-  )
-}
-
-function SunIcon() {
-  return (
-    <svg className="shift-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <circle cx="12" cy="12" r="4" />
       <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
     </svg>
   )
 }
 
-function MoonIcon() {
+function MoonIcon({ className = 'shift-icon' }) {
   return (
-    <svg className="shift-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z" />
     </svg>
   )
 }
 
-function ThemeControls({ theme, setTheme, darkMode, setDarkMode }) {
-  const options = [
-    { id: 'default', label: 'Padrão' },
-    { id: 'orange', label: 'Laranja' },
-    { id: 'red', label: 'Vermelho' },
-  ]
-
+// Chaveiro de quarto: a marca do motel na barra do topo.
+function KeyTagMark() {
   return (
-    <div className="appearance-controls" aria-label="Aparência da página">
+    <svg className="brand-mark" viewBox="0 0 24 32" aria-hidden="true" focusable="false">
+      <path d="M12 1.5 21 7v18.5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5V7Z" />
+      <circle cx="12" cy="8.5" r="2.2" />
+      <path d="M8 17h8M8 21.5h5" />
+    </svg>
+  )
+}
+
+function SectionHeading({ title, description, id }) {
+  return (
+    <div className="section-heading">
+      <h2 id={id}>{title}</h2>
+      {description && <p className="section-description">{description}</p>}
+    </div>
+  )
+}
+
+function AppearanceControls({ theme, setTheme, darkMode, setDarkMode }) {
+  return (
+    <div className="appearance-controls">
       <div className="theme-options" role="group" aria-label="Cor do tema">
-        {options.map((option) => (
+        {themes.map((option) => (
           <button
-            className="theme-option"
+            className={`theme-swatch theme-swatch-${option.id}`}
             key={option.id}
             type="button"
             aria-pressed={theme === option.id}
+            aria-label={`Tema ${option.label}`}
+            title={`Tema ${option.label}`}
             onClick={() => setTheme(option.id)}
-          >
-            <span className={`theme-swatch theme-swatch-${option.id}`} aria-hidden="true" />
-            {option.label}
-          </button>
+          />
         ))}
       </div>
       <button
         className="mode-toggle"
         type="button"
         aria-pressed={darkMode}
+        aria-label={darkMode ? 'Usar modo claro' : 'Usar modo escuro'}
+        title={darkMode ? 'Usar modo claro' : 'Usar modo escuro'}
         onClick={() => setDarkMode((current) => !current)}
       >
-        <span aria-hidden="true">{darkMode ? '☀️' : '🌙'}</span>
-        <span>{darkMode ? 'Ativar modo claro' : 'Ativar modo escuro'}</span>
+        {darkMode ? <SunIcon className="mode-icon" /> : <MoonIcon className="mode-icon" />}
       </button>
     </div>
   )
@@ -198,6 +208,7 @@ function EmployeeCard({ employee, index, count, onChange, onRemove }) {
   const update = (field, value) => onChange(employee.id, { [field]: value })
   const selectedRole = roles.find((role) => role.value === employee.role)
   const fixedDaily = selectedRole?.daily
+  const netPayable = Number(employee.daily) - Number(employee.advanceAmount || 0)
 
   function handleRoleChange(event) {
     const role = roles.find((item) => item.value === event.target.value)
@@ -218,8 +229,19 @@ function EmployeeCard({ employee, index, count, onChange, onRemove }) {
 
   return (
     <div className="employee-row">
-      <div className="employee-top-grid">
-        <div className="employee-role">
+      <div className="employee-header">
+        <span className="employee-title">
+          {employee.name.trim() || `Pessoa ${index + 1}`}
+        </span>
+        <span className="employee-net">
+          {employee.daily === ''
+            ? <span className="value-missing">—</span>
+            : <>{employee.paid ? 'Pago' : 'A pagar'} <strong className="num">{formatCurrency(netPayable)}</strong></>}
+        </span>
+      </div>
+
+      <div className="field-grid">
+        <div className="field">
           <label htmlFor={`${prefix}-role`}>Função</label>
           <select
             id={`${prefix}-role`}
@@ -228,44 +250,43 @@ function EmployeeCard({ employee, index, count, onChange, onRemove }) {
             onChange={handleRoleChange}
             required
           >
-            <option value="">Selecione a função</option>
+            <option value="">Selecione</option>
             {roles.map((role) => (
               <option key={role.value} value={role.value}>{role.value}</option>
             ))}
           </select>
         </div>
-        <div className="employee-name">
-          <label htmlFor={`${prefix}-name`}>Nome do funcionário</label>
+        <div className="field">
+          <label htmlFor={`${prefix}-name`}>Nome</label>
           <input
-            className="employee-name-input"
             id={`${prefix}-name`}
             name="employeeName[]"
             type="text"
             autoComplete="off"
-            placeholder="Nome do funcionário"
             value={employee.name}
             onChange={(event) => update('name', event.target.value)}
             required
           />
         </div>
-      </div>
-
-      <div className="employee-pay-grid">
         <div className="field">
-          <label htmlFor={`${prefix}-daily`}>Diária (R$)</label>
-          <input
-            id={`${prefix}-daily`}
-            name="employeeDaily[]"
-            type="number"
-            min="0"
-            step="0.01"
-            inputMode="decimal"
-            placeholder="Valor da diária"
-            value={employee.daily}
-            readOnly={Boolean(fixedDaily)}
-            onChange={(event) => update('daily', event.target.value)}
-            required
-          />
+          <label htmlFor={`${prefix}-daily`}>Diária</label>
+          <div className="money-input">
+            <span aria-hidden="true">R$</span>
+            <input
+              className="num"
+              id={`${prefix}-daily`}
+              name="employeeDaily[]"
+              type="number"
+              min="0"
+              step="0.01"
+              inputMode="decimal"
+              value={employee.daily}
+              readOnly={Boolean(fixedDaily)}
+              onChange={(event) => update('daily', event.target.value)}
+              required
+            />
+          </div>
+          {fixedDaily && <p className="field-hint">Valor fixo para {employee.role.toLowerCase()}.</p>}
         </div>
         <div className="field">
           <label htmlFor={`${prefix}-payment`}>Forma de pagamento</label>
@@ -283,22 +304,32 @@ function EmployeeCard({ employee, index, count, onChange, onRemove }) {
         </div>
       </div>
 
-      <div className="employee-pay-grid">
-        <div className="field">
-          <span className="field-label">Vale</span>
-          <label className="check-option" htmlFor={`${prefix}-has-advance`}>
-            <input
-              id={`${prefix}-has-advance`}
-              name="employeeHasAdvance[]"
-              type="checkbox"
-              checked={employee.hasAdvance}
-              onChange={handleAdvanceToggle}
-            />
-            Teve vale
-          </label>
-        </div>
-        {employee.hasAdvance && (
-          <div className="field employee-advance-fields">
+      <div className="employee-checks">
+        <label className="check-option" htmlFor={`${prefix}-has-advance`}>
+          <input
+            id={`${prefix}-has-advance`}
+            name="employeeHasAdvance[]"
+            type="checkbox"
+            checked={employee.hasAdvance}
+            onChange={handleAdvanceToggle}
+          />
+          Pegou vale
+        </label>
+        <label className="check-option" htmlFor={`${prefix}-paid`}>
+          <input
+            id={`${prefix}-paid`}
+            name="employeePaid[]"
+            type="checkbox"
+            checked={employee.paid}
+            onChange={(event) => update('paid', event.target.checked)}
+          />
+          Diária já recebida
+        </label>
+      </div>
+
+      {employee.hasAdvance && (
+        <div className="field-grid">
+          <div className="field">
             <label htmlFor={`${prefix}-advance-description`}>Descrição do vale</label>
             <input
               id={`${prefix}-advance-description`}
@@ -309,48 +340,39 @@ function EmployeeCard({ employee, index, count, onChange, onRemove }) {
               onChange={(event) => update('advanceDescription', event.target.value)}
               required
             />
-            <label htmlFor={`${prefix}-advance-amount`}>Valor do vale (R$)</label>
-            <input
-              id={`${prefix}-advance-amount`}
-              name="employeeAdvanceAmount[]"
-              type="number"
-              min="0.01"
-              max={employee.daily || undefined}
-              step="0.01"
-              inputMode="decimal"
-              placeholder="0,00"
-              value={employee.advanceAmount}
-              onChange={(event) => update('advanceAmount', event.target.value)}
-              required
-            />
           </div>
-        )}
-      </div>
-
-      <div className="employee-bottom-grid">
-        <div className="field">
-          <span className="field-label">Pagamento da diária</span>
-          <label className="check-option" htmlFor={`${prefix}-paid`}>
-            <input
-              id={`${prefix}-paid`}
-              name="employeePaid[]"
-              type="checkbox"
-              checked={employee.paid}
-              onChange={(event) => update('paid', event.target.checked)}
-            />
-            Diária já recebida
-          </label>
+          <div className="field">
+            <label htmlFor={`${prefix}-advance-amount`}>Valor do vale</label>
+            <div className="money-input">
+              <span aria-hidden="true">R$</span>
+              <input
+                className="num"
+                id={`${prefix}-advance-amount`}
+                name="employeeAdvanceAmount[]"
+                type="number"
+                min="0.01"
+                max={employee.daily || undefined}
+                step="0.01"
+                inputMode="decimal"
+                placeholder="0,00"
+                value={employee.advanceAmount}
+                onChange={(event) => update('advanceAmount', event.target.value)}
+                required
+              />
+            </div>
+          </div>
         </div>
+      )}
+
+      {count > 1 && (
         <button
-          className="remove-employee"
+          className="text-button remove-employee"
           type="button"
-          aria-label={`Remover funcionário ${index + 1}`}
-          disabled={count === 1}
           onClick={() => onRemove(employee.id)}
         >
-          ×
+          Remover {employee.name.trim() || `pessoa ${index + 1}`}
         </button>
-      </div>
+      )}
     </div>
   )
 }
@@ -386,7 +408,19 @@ function App() {
   const difference = reviewTotal - revenueValue
   const averageTicket = carExits !== '' && revenue !== '' && exitsValue > 0
     ? formatCurrency(revenueValue / exitsValue)
-    : '—'
+    : null
+  const parsedDate = parseDate(date)
+  const shiftSummary = parsedDate && shift
+    ? `${getWeekday(parsedDate)}, ${date} · Turno ${shift === 'Dia' ? 'do dia' : 'da noite'}`
+    : 'Preencha a data e o turno para começar.'
+
+  let balance = { label: 'Diferença do caixa', tone: 'pending', note: 'Informe o faturamento para comparar.' }
+  if (revenue !== '') {
+    const note = `Revisão ${formatCurrency(reviewTotal)} contra faturamento ${formatCurrency(revenueValue)}`
+    if (difference > 0) balance = { label: 'Sobra no caixa', tone: 'positive', note }
+    else if (difference < 0) balance = { label: 'Falta no caixa', tone: 'negative', note }
+    else balance = { label: 'Caixa batendo', tone: 'zero', note }
+  }
 
   useEffect(() => {
     const root = document.documentElement
@@ -449,7 +483,7 @@ function App() {
   async function copyReport() {
     try {
       await navigator.clipboard.writeText(report)
-      setCopyStatus('Prévia copiada! Agora é só colar no WhatsApp.')
+      setCopyStatus('Copiada. Agora é só colar no WhatsApp.')
     } catch {
       let copied = false
       const temporaryTextArea = document.createElement('textarea')
@@ -466,237 +500,263 @@ function App() {
       }
 
       setCopyStatus(copied
-        ? 'Prévia copiada! Agora é só colar no WhatsApp.'
-        : 'Não foi possível copiar. Selecione e copie a prévia manualmente.')
+        ? 'Copiada. Agora é só colar no WhatsApp.'
+        : 'Não foi possível copiar. Selecione o texto e copie manualmente.')
     }
   }
 
   return (
-    <main className="page">
-      <header className="page-header">
-        <div className="header-copy">
-          <p className="eyebrow">Controle de turnos</p>
-          <h1>Fechamento de turno</h1>
-          <p>Registre a equipe e os principais números do período.</p>
+    <>
+      <header className="top-bar">
+        <div className="top-bar-inner">
+          <div className="brand">
+            <KeyTagMark />
+            <span className="brand-name">Bahrem Motel</span>
+            <span className="brand-scope">Caixa</span>
+          </div>
+          <AppearanceControls
+            theme={theme}
+            setTheme={setTheme}
+            darkMode={darkMode}
+            setDarkMode={setDarkMode}
+          />
         </div>
-        <ThemeControls
-          theme={theme}
-          setTheme={setTheme}
-          darkMode={darkMode}
-          setDarkMode={setDarkMode}
-        />
       </header>
 
-      <form className="form-card" id="shift-form" onSubmit={handleSubmit} onChange={markReportStale}>
-        <section className="form-section" aria-labelledby="shift-section-title">
-          <SectionHeading
-            number="1"
-            id="shift-section-title"
-            title="Data e turno"
-            description="Informe a data de referência e o período do fechamento."
-          />
-          <div className="field-grid">
-            <div className="field">
-              <label htmlFor="shift-date">Data</label>
-              <input
-                ref={dateInputRef}
-                id="shift-date"
-                name="date"
-                type="text"
-                inputMode="numeric"
-                placeholder="DD/MM/AAAA"
-                pattern="\d{2}/\d{2}/\d{4}"
-                maxLength="10"
-                title="Digite a data no formato dia/mês/ano (DD/MM/AAAA)"
-                autoComplete="off"
-                value={date}
-                onChange={(event) => {
-                  setDate(event.target.value)
-                  event.target.setCustomValidity('')
-                  markReportStale()
-                }}
-                required
-              />
-            </div>
-          </div>
-
-          <fieldset className="shift-field">
-            <legend className="field-label">Turno</legend>
-            <div className="shift-options">
-              <div className="shift-option">
-                <input
-                  id="shift-day"
-                  name="shift"
-                  type="radio"
-                  value="Dia"
-                  checked={shift === 'Dia'}
-                  onChange={(event) => setShift(event.target.value)}
-                  required
-                />
-                <label htmlFor="shift-day">
-                  <SunIcon />
-                  <span className="shift-text">
-                    <span className="shift-name">Dia</span>
-                    <span className="shift-hours">07:00 às 19:00</span>
-                  </span>
-                </label>
-              </div>
-              <div className="shift-option">
-                <input
-                  id="shift-night"
-                  name="shift"
-                  type="radio"
-                  value="Noite"
-                  checked={shift === 'Noite'}
-                  onChange={(event) => setShift(event.target.value)}
-                />
-                <label htmlFor="shift-night">
-                  <MoonIcon />
-                  <span className="shift-text">
-                    <span className="shift-name">Noite</span>
-                    <span className="shift-hours">19:00 às 07:00 do dia seguinte</span>
-                  </span>
-                </label>
-              </div>
-            </div>
-          </fieldset>
-        </section>
-
-        <section className="form-section" aria-labelledby="team-section-title">
-          <SectionHeading
-            number="2"
-            id="team-section-title"
-            title="Equipe do turno"
-            description="Adicione cada pessoa que trabalhou neste período."
-          />
-          <div className="employee-list">
-            {employees.map((employee, index) => (
-              <EmployeeCard
-                employee={employee}
-                index={index}
-                count={employees.length}
-                key={employee.id}
-                onChange={updateEmployee}
-                onRemove={removeEmployee}
-              />
-            ))}
-          </div>
-          <button className="secondary-button" type="button" onClick={addEmployee}>
-            + Adicionar funcionário
-          </button>
-        </section>
-
-        <section className="form-section" aria-labelledby="numbers-section-title">
-          <SectionHeading
-            number="3"
-            id="numbers-section-title"
-            title="Movimento do turno"
-            description="O ticket médio será calculado pelo faturamento dividido pelas saídas."
-          />
-          <div className="field-grid">
-            <div className="field metric-field">
-              <label htmlFor="car-exits">Fluxo de carros (saídas)</label>
-              <input
-                id="car-exits"
-                name="carExits"
-                type="number"
-                min="0"
-                step="1"
-                inputMode="numeric"
-                placeholder="Ex.: 25"
-                value={carExits}
-                onChange={(event) => {
-                  setCarExits(event.target.value)
-                  markReportStale()
-                }}
-                required
-              />
-              <span className="input-suffix">saídas</span>
-            </div>
-            <div className="field">
-              <label htmlFor="revenue">Faturamento do turno</label>
-              <input
-                id="revenue"
-                name="revenue"
-                type="number"
-                min="0"
-                step="0.01"
-                inputMode="decimal"
-                placeholder="Ex.: 3250,00"
-                value={revenue}
-                onChange={(event) => {
-                  setRevenue(event.target.value)
-                  markReportStale()
-                }}
-                required
-              />
-            </div>
-          </div>
-          <div className="ticket-card" aria-live="polite">
-            <span>Ticket médio</span>
-            <output className="ticket-value" htmlFor="car-exits revenue">{averageTicket}</output>
-          </div>
-          <p className="help-text">Cálculo: faturamento ÷ saídas. Com zero saídas, o ticket médio não é definido.</p>
-        </section>
-
-        <section className="form-section" aria-labelledby="review-section-title">
-          <SectionHeading
-            number="4"
-            id="review-section-title"
-            title="Revisão do turno"
-            description="Informe os valores conferidos manualmente. Os campos vazios contam como zero."
-          />
-          <div className="field-grid">
-            {reviewFields.map((field) => (
-              <div className="field" key={field.key}>
-                <label htmlFor={field.id}>{field.label}</label>
-                <input
-                  id={field.id}
-                  name={field.name}
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  inputMode="decimal"
-                  placeholder="0,00"
-                  value={review[field.key]}
-                  onChange={(event) => updateReview(field.key, event.target.value)}
-                />
-              </div>
-            ))}
-          </div>
-          <div className="review-summary" aria-live="polite">
-            <div className="review-summary-row">
-              <span>Total da revisão</span>
-              <output>{formatCurrency(reviewTotal)}</output>
-            </div>
-            <div className="review-summary-row">
-              <span>Total da revisão − faturamento</span>
-              <output className={revenue === '' ? '' : difference >= 0 ? 'difference-positive' : 'difference-negative'}>
-                {revenue === '' ? '—' : formatSignedCurrency(difference)}
-              </output>
-            </div>
-          </div>
-        </section>
-
-        <div className="form-actions">
-          <button className="primary-button" type="submit">Gerar prévia do turno</button>
+      <main className="page">
+        <div className="title-row">
+          <h1>Fechamento de turno</h1>
+          <p className="title-note">{shiftSummary}</p>
         </div>
-      </form>
 
-      {report && (
-        <section className="preview-card" aria-labelledby="report-title" ref={reportRef}>
-          <div className="preview-header">
-            <h2 id="report-title">Prévia do fechamento</h2>
-            <button className="secondary-button copy-button" type="button" onClick={copyReport}>
-              Copiar prévia
-            </button>
-          </div>
-          <pre className="report-preview">{report}</pre>
-          <p className="copy-status" role="status" aria-live="polite">{copyStatus}</p>
-        </section>
-      )}
-      <p className="help-text page-note">Prévia local: os dados ainda não são salvos.</p>
-    </main>
+        <div className="layout">
+          <form className="form" id="shift-form" onSubmit={handleSubmit} onChange={markReportStale}>
+            <section className="panel" aria-labelledby="shift-section-title">
+              <SectionHeading id="shift-section-title" title="Data e turno" />
+              <div className="field-grid">
+                <div className="field">
+                  <label htmlFor="shift-date">Data</label>
+                  <input
+                    className="num"
+                    ref={dateInputRef}
+                    id="shift-date"
+                    name="date"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="DD/MM/AAAA"
+                    pattern="\d{2}/\d{2}/\d{4}"
+                    maxLength="10"
+                    title="Digite a data no formato dia/mês/ano (DD/MM/AAAA)"
+                    autoComplete="off"
+                    value={date}
+                    onChange={(event) => {
+                      setDate(event.target.value)
+                      event.target.setCustomValidity('')
+                      markReportStale()
+                    }}
+                    required
+                  />
+                </div>
+              </div>
+
+              <fieldset className="shift-field">
+                <legend className="field-label">Turno</legend>
+                <div className="shift-options">
+                  <div className="shift-option">
+                    <input
+                      id="shift-day"
+                      name="shift"
+                      type="radio"
+                      value="Dia"
+                      checked={shift === 'Dia'}
+                      onChange={(event) => setShift(event.target.value)}
+                      required
+                    />
+                    <label htmlFor="shift-day">
+                      <SunIcon />
+                      <span className="shift-text">
+                        <span className="shift-name">Dia</span>
+                        <span className="shift-hours num">07:00 às 19:00</span>
+                      </span>
+                    </label>
+                  </div>
+                  <div className="shift-option">
+                    <input
+                      id="shift-night"
+                      name="shift"
+                      type="radio"
+                      value="Noite"
+                      checked={shift === 'Noite'}
+                      onChange={(event) => setShift(event.target.value)}
+                    />
+                    <label htmlFor="shift-night">
+                      <MoonIcon />
+                      <span className="shift-text">
+                        <span className="shift-name">Noite</span>
+                        <span className="shift-hours num">19:00 às 07:00 do dia seguinte</span>
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              </fieldset>
+            </section>
+
+            <section className="panel" aria-labelledby="team-section-title">
+              <SectionHeading
+                id="team-section-title"
+                title="Equipe"
+                description="Quem trabalhou neste turno, com diária e vale de cada um."
+              />
+              <div className="employee-list">
+                {employees.map((employee, index) => (
+                  <EmployeeCard
+                    employee={employee}
+                    index={index}
+                    count={employees.length}
+                    key={employee.id}
+                    onChange={updateEmployee}
+                    onRemove={removeEmployee}
+                  />
+                ))}
+              </div>
+              <button className="secondary-button add-employee" type="button" onClick={addEmployee}>
+                Adicionar pessoa
+              </button>
+            </section>
+
+            <section className="panel" aria-labelledby="numbers-section-title">
+              <SectionHeading
+                id="numbers-section-title"
+                title="Movimento"
+                description="O ticket médio é o faturamento dividido pelas saídas."
+              />
+              <div className="field-grid">
+                <div className="field">
+                  <label htmlFor="car-exits">Saídas de carros</label>
+                  <input
+                    className="num"
+                    id="car-exits"
+                    name="carExits"
+                    type="number"
+                    min="0"
+                    step="1"
+                    inputMode="numeric"
+                    value={carExits}
+                    onChange={(event) => {
+                      setCarExits(event.target.value)
+                      markReportStale()
+                    }}
+                    required
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="revenue">Faturamento</label>
+                  <div className="money-input">
+                    <span aria-hidden="true">R$</span>
+                    <input
+                      className="num"
+                      id="revenue"
+                      name="revenue"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      inputMode="decimal"
+                      value={revenue}
+                      onChange={(event) => {
+                        setRevenue(event.target.value)
+                        markReportStale()
+                      }}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="panel" aria-labelledby="review-section-title">
+              <SectionHeading
+                id="review-section-title"
+                title="Revisão do caixa"
+                description="Valores conferidos na mão. Campo vazio conta como zero."
+              />
+              <div className="field-grid money-grid">
+                {reviewFields.map((field) => (
+                  <div className="field" key={field.key}>
+                    <label htmlFor={field.id}>
+                      {field.label}
+                      {field.subtracts && <span className="label-note"> (subtrai)</span>}
+                    </label>
+                    <div className="money-input">
+                      <span aria-hidden="true">R$</span>
+                      <input
+                        className="num"
+                        id={field.id}
+                        name={field.name}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        inputMode="decimal"
+                        placeholder="0,00"
+                        value={review[field.key]}
+                        onChange={(event) => updateReview(field.key, event.target.value)}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </form>
+
+          <aside className="summary" aria-labelledby="summary-title">
+            <section className="panel summary-panel" aria-live="polite">
+              <h2 id="summary-title" className="summary-label">{balance.label}</h2>
+              <p className={`balance-value num balance-${balance.tone}`}>
+                {revenue === '' ? '—' : formatSignedCurrency(difference)}
+              </p>
+              <p className="balance-note">{balance.note}</p>
+
+              <dl className="summary-list">
+                <div>
+                  <dt>Saídas</dt>
+                  <dd className="num">{carExits === '' ? <span className="value-missing">—</span> : exitsValue}</dd>
+                </div>
+                <div>
+                  <dt>Faturamento</dt>
+                  <dd className="num">{revenue === '' ? <span className="value-missing">—</span> : formatCurrency(revenueValue)}</dd>
+                </div>
+                <div>
+                  <dt>Ticket médio</dt>
+                  <dd className="num ticket-value">{averageTicket ?? <span className="value-missing">—</span>}</dd>
+                </div>
+                <div>
+                  <dt>Total da revisão</dt>
+                  <dd className="num">{formatCurrency(reviewTotal)}</dd>
+                </div>
+              </dl>
+
+              <button className="primary-button" type="submit" form="shift-form">
+                Gerar mensagem
+              </button>
+            </section>
+
+            {report && (
+              <section className="panel preview-panel" aria-labelledby="report-title" ref={reportRef}>
+                <div className="preview-header">
+                  <h2 id="report-title">Mensagem pronta</h2>
+                  <button className="secondary-button" type="button" onClick={copyReport}>
+                    Copiar
+                  </button>
+                </div>
+                <p className="report-preview">{report}</p>
+                <p className="copy-status" role="status" aria-live="polite">{copyStatus}</p>
+              </section>
+            )}
+
+            <p className="page-note">Nada fica salvo: ao fechar a página, os dados somem.</p>
+          </aside>
+        </div>
+      </main>
+    </>
   )
 }
 

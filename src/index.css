@@ -21,5 +21,5 @@ button {
 
 ::selection {
   color: #fff;
-  background: #4169e1;
+  background: var(--accent);
 }
